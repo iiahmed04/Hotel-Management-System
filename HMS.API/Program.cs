@@ -1,9 +1,19 @@
 
+using HMS.API.Extensions;
+using HMS.Core.Contracts;
+using HMS.Infrastructure.Data.DbContexts;
+using HMS.Infrastructure.Repositories;
+using HMS.Services.Abstraction;
+using HMS.Services.Helpers;
+using HMS.Services.Profiles;
+using HMS.Services.Services;
+using Microsoft.EntityFrameworkCore;
+
 namespace HMS.API
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -14,7 +24,18 @@ namespace HMS.API
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            builder.Services.AddDbContext<HotelDbContext>(options =>
+            {
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+            });
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            builder.Services.AddAutoMapper(typeof(ProfilesAssemblyReference).Assembly);
+            builder.Services.AddScoped<IRoomService, RoomService>();
+            builder.Services.AddTransient<IAttachementService, AttachementService>();
+
             var app = builder.Build();
+
+            await app.MigrateDatabaseAsync();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
@@ -24,6 +45,8 @@ namespace HMS.API
             }
 
             app.UseHttpsRedirection();
+
+            app.UseStaticFiles();
 
             app.UseAuthorization();
 
