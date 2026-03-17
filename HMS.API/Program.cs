@@ -4,6 +4,7 @@ using HMS.Core.Contracts;
 using HMS.Infrastructure.Data.DbContexts;
 using HMS.Infrastructure.Repositories;
 using HMS.Services.Abstraction;
+using HMS.Services.Helpers;
 using HMS.Services.Profiles;
 using HMS.Services.Services;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +31,7 @@ namespace HMS.API
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddAutoMapper(typeof(ProfilesAssemblyReference).Assembly);
             builder.Services.AddScoped<IRoomService, RoomService>();
+            builder.Services.AddTransient<IAttachementService, AttachementService>();
 
             var app = builder.Build();
 
@@ -43,6 +45,8 @@ namespace HMS.API
             }
 
             app.UseHttpsRedirection();
+
+            app.UseStaticFiles();
 
             app.UseAuthorization();
 

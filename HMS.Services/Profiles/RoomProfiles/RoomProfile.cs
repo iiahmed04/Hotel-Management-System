@@ -11,7 +11,14 @@ namespace HMS.Services.Profiles.RoomProfiles
             CreateMap<Room, RoomDTO>();
 
             CreateMap<Room, RoomDetailsDTO>()
-                .ForMember(dest => dest.ImageUrls, opt => opt.MapFrom(src => src.RoomImages.Select(i => i.ImageUrl)));
+                .ForMember(dest => dest.ImageUrls, opt => opt.MapFrom<RoomImageResolver>());
+
+
+            CreateMap<Room, AdminRoomDTO>();
+
+            CreateMap<CreateRoomDTO, Room>();
+
+            CreateMap<UpdateRoomDTO, Room>();
         }
     }
 }
