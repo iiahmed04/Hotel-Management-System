@@ -15,11 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-    <Folder Include="Extensions\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\HMS.Infrastructure\HMS.Infrastructure.csproj" />
     <ProjectReference Include="..\HMS.Services.Abstraction\HMS.Services.Abstraction.csproj" />
   </ItemGroup>

@@ -1,7 +1,7 @@
 ﻿using HMS.Infrastructure.Data.DbContexts;
 using Microsoft.EntityFrameworkCore;
 
-namespace HMS.API
+namespace HMS.API.Extensions
 {
     public static class WebApplicationRegister
     {

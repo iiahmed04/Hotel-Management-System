@@ -1,4 +1,4 @@
-﻿namespace HMS.Core.Entities.RoomModule
+﻿namespace HMS.Core.Entities.RoomEntities
 {
     public enum RoomType
     {

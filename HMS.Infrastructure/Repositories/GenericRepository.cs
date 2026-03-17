@@ -2,6 +2,7 @@
 using HMS.Core.Entities;
 using HMS.Infrastructure.Data.DbContexts;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace HMS.Infrastructure.Repositories
 {
@@ -26,8 +27,45 @@ namespace HMS.Infrastructure.Repositories
         public async Task<IEnumerable<TEntity>> GetAllAsync()
             => await _dbContext.Set<TEntity>().ToListAsync();
 
+        public async Task<IEnumerable<TEntity>> GetAllAsync(
+            Expression<Func<TEntity, bool>>? filter = null,
+            Expression<Func<TEntity, object>>? orderByExp = null,
+            Expression<Func<TEntity, object>>? orderByDescExp = null
+            )
+        {
+            var Query = _dbContext.Set<TEntity>().AsQueryable();
+
+            if (filter is not null)
+                Query = Query.Where(filter);
+
+            if (orderByExp is not null)
+                Query = Query.OrderBy(orderByExp);
+
+            if (orderByDescExp is not null)
+                Query = Query.OrderByDescending(orderByDescExp);
+
+
+            return await Query.ToListAsync();
+        }
+
         public async Task<TEntity?> GetByIdAsync(TKey id)
             => await _dbContext.Set<TEntity>().FindAsync(id);
+
+        public async Task<TEntity?> GetByIdAsync(TKey id, Expression<Func<TEntity, bool>>? filter = null, List<Expression<Func<TEntity, object>>>? includes = null)
+        {
+            var Query = _dbContext.Set<TEntity>().AsQueryable();
+
+            if (filter is not null)
+                Query = Query.Where(filter);
+
+            if (includes is not null)
+            {
+                foreach (var include in includes)
+                    Query = Query.Include(include);
+            }
+
+            return await Query.FirstOrDefaultAsync(E => E.Id!.Equals(id));
+        }
 
         public void Update(TEntity entity)
         {
