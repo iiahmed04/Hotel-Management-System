@@ -1,12 +1,15 @@
 
 using HMS.API.Extensions;
 using HMS.Core.Contracts;
+using HMS.Core.Entities.IdentityEntities;
+using HMS.Infrastructure.Data.DataSeed;
 using HMS.Infrastructure.Data.DbContexts;
 using HMS.Infrastructure.Repositories;
 using HMS.Services.Abstraction;
 using HMS.Services.Helpers;
 using HMS.Services.Profiles;
 using HMS.Services.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace HMS.API
@@ -32,10 +35,15 @@ namespace HMS.API
             builder.Services.AddAutoMapper(typeof(ProfilesAssemblyReference).Assembly);
             builder.Services.AddScoped<IRoomService, RoomService>();
             builder.Services.AddTransient<IAttachementService, AttachementService>();
+            builder.Services.AddIdentityCore<HotelUser>()
+                .AddRoles<IdentityRole>()
+                .AddEntityFrameworkStores<HotelDbContext>();
+            builder.Services.AddScoped<IDataIntializer, IdentityDataIntializer>();
 
             var app = builder.Build();
 
             await app.MigrateDatabaseAsync();
+            await app.SeedIdentityDataAsync();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
