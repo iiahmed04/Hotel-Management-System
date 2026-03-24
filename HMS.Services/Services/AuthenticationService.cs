@@ -4,16 +4,23 @@ using HMS.Shared.DTOs.AuthDTOs;
 using HMS.Shared.Responses;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace HMS.Services.Services
 {
     public class AuthenticationService : IAuthenticationService
     {
         private readonly UserManager<HotelUser> _userManager;
+        private readonly IConfiguration _configuration;
 
-        public AuthenticationService(UserManager<HotelUser> userManager)
+        public AuthenticationService(UserManager<HotelUser> userManager, IConfiguration configuration)
         {
             _userManager = userManager;
+            _configuration = configuration;
         }
         public async Task<GenericResponse<UserDTO>> RegisterUserAsync(RegisterDTO registerData)
         {
@@ -63,7 +70,7 @@ namespace HMS.Services.Services
             {
                 Email = registerData.Email,
                 FullName = registerData.FullName,
-                Token = "Token"
+                Token = await CreateTokenAsync(hotelUser),
             };
 
             return genericResponse;
@@ -109,7 +116,7 @@ namespace HMS.Services.Services
             {
                 Email = loginData.Email,
                 FullName = user.FullName,
-                Token = "Token"
+                Token = await CreateTokenAsync(user),
             };
 
             genericResponse.StatusCode = StatusCodes.Status200OK;
@@ -117,6 +124,35 @@ namespace HMS.Services.Services
             genericResponse.Data = loginUser;
 
             return genericResponse;
+        }
+
+        private async Task<string> CreateTokenAsync(HotelUser user)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Email,user.Email!),
+                new Claim(JwtRegisteredClaimNames.NameId,user.Id),
+                new Claim("Activity",user.IsActive.ToString()),
+            };
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            foreach (var role in roles)
+                claims.Add(new Claim(ClaimTypes.Role, role));
+
+            var secretKey = _configuration["JWTOptions:SecretKey"]!;
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+            var cred = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["JWTOptions:Issuer"],
+                audience: _configuration["JWTOptions:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: cred
+                );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
     }
