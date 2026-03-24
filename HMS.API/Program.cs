@@ -9,8 +9,13 @@ using HMS.Services.Abstraction;
 using HMS.Services.Helpers;
 using HMS.Services.Profiles;
 using HMS.Services.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using AuthenticationService = HMS.Services.Services.AuthenticationService;
+using IAuthenticationService = HMS.Services.Abstraction.IAuthenticationService;
 
 namespace HMS.API
 {
@@ -40,6 +45,23 @@ namespace HMS.API
                 .AddEntityFrameworkStores<HotelDbContext>();
             builder.Services.AddScoped<IDataIntializer, IdentityDataIntializer>();
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
+            {
+                options.SaveToken = true;
+                options.TokenValidationParameters = new TokenValidationParameters()
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidIssuer = builder.Configuration["JWTOptions:Issuer"],
+                    ValidAudience = builder.Configuration["JWTOptions:Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWTOptions:SecretKey"]!))
+                };
+            });
 
             var app = builder.Build();
 
@@ -55,10 +77,11 @@ namespace HMS.API
 
             app.UseHttpsRedirection();
 
-            app.UseStaticFiles();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
+            app.UseStaticFiles();
 
             app.MapControllers();
 
