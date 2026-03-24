@@ -39,6 +39,7 @@ namespace HMS.API
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<HotelDbContext>();
             builder.Services.AddScoped<IDataIntializer, IdentityDataIntializer>();
+            builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
             var app = builder.Build();
 
