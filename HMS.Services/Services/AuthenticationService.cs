@@ -1,6 +1,7 @@
 ﻿using HMS.Core.Entities.IdentityEntities;
 using HMS.Services.Abstraction;
 using HMS.Shared.DTOs.AuthDTOs;
+using HMS.Shared.Messages;
 using HMS.Shared.Responses;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -17,11 +18,13 @@ namespace HMS.Services.Services
     {
         private readonly UserManager<HotelUser> _userManager;
         private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
 
-        public AuthenticationService(UserManager<HotelUser> userManager, IConfiguration configuration)
+        public AuthenticationService(UserManager<HotelUser> userManager, IConfiguration configuration, IEmailService emailService)
         {
             _userManager = userManager;
             _configuration = configuration;
+            _emailService = emailService;
         }
         public async Task<GenericResponse<UserDTO>> RegisterUserAsync(RegisterDTO registerData)
         {
@@ -56,6 +59,15 @@ namespace HMS.Services.Services
             var result = await _userManager.CreateAsync(hotelUser, registerData.Password);
 
             await _userManager.AddToRoleAsync(hotelUser, "Guest");
+
+            var email = new Email
+            {
+                To = registerData.Email,
+                Subject = $"Welcome {registerData.FullName} To Our HotelSystem APP ",
+                Body = "This is A Welcome message from our app please Go and Login to Our app and Enjoy our services"
+            };
+
+            await _emailService.SendEmailAsync(email);
 
             if (!result.Succeeded)
             {

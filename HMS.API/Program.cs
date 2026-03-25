@@ -4,6 +4,7 @@ using HMS.Core.Contracts;
 using HMS.Core.Entities.IdentityEntities;
 using HMS.Infrastructure.Data.DataSeed;
 using HMS.Infrastructure.Data.DbContexts;
+using HMS.Infrastructure.ExternalServices;
 using HMS.Infrastructure.Repositories;
 using HMS.Services.Abstraction;
 using HMS.Services.Helpers;
@@ -62,6 +63,9 @@ namespace HMS.API
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWTOptions:SecretKey"]!))
                 };
             });
+
+            builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+            builder.Services.AddTransient<IEmailService, EmailService>();
 
             var app = builder.Build();
 
