@@ -4,6 +4,7 @@ using HMS.Shared.DTOs.AuthDTOs;
 using HMS.Shared.Responses;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -155,5 +156,234 @@ namespace HMS.Services.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        public async Task<GenericResponse<bool>> CreateStaffUserAsync(StaffUserDTO staffUser)
+        {
+            var genericResponse = new GenericResponse<bool>();
+
+            if (staffUser is null)
+            {
+                genericResponse.StatusCode = StatusCodes.Status400BadRequest;
+                genericResponse.Message = "Invalid Staff data";
+                return genericResponse;
+            }
+
+            var staffUserCheck = await _userManager.FindByEmailAsync(staffUser.Email);
+
+            if (staffUserCheck is not null)
+            {
+                genericResponse.StatusCode = StatusCodes.Status400BadRequest;
+                genericResponse.Message = "This is already existed Email";
+                return genericResponse;
+            }
+
+            var resultOfParsing = Enum.TryParse(staffUser.Specialities, out StaffSpecialities speciality);
+
+            if (!resultOfParsing)
+            {
+
+                genericResponse.StatusCode = StatusCodes.Status400BadRequest;
+                genericResponse.Message = "Invalid Staff speciality";
+                return genericResponse;
+            }
+            var newStaffUser = new StaffUser
+            {
+                FullName = staffUser.FullName,
+                Email = staffUser.Email,
+                PhoneNumber = staffUser.PhoneNumber,
+                Specialities = speciality,
+                IsActive = true,
+                CreatedAt = DateTime.Now,
+                UserName = staffUser.Email.Split("@")[0]
+            };
+
+            var result = await _userManager.CreateAsync(newStaffUser, staffUser.Password);
+
+            if (!result.Succeeded)
+            {
+                genericResponse.StatusCode = StatusCodes.Status400BadRequest;
+                genericResponse.Message = string.Join("|", result.Errors.Select(e => e.Description));
+                return genericResponse;
+            }
+
+            await _userManager.AddToRoleAsync(newStaffUser, "Staff");
+
+            genericResponse.StatusCode = StatusCodes.Status200OK;
+            genericResponse.Message = "Staff created successfully";
+            genericResponse.Data = true;
+
+            return genericResponse;
+        }
+
+        public async Task<GenericResponse<IEnumerable<GetUserDTO>>> GettAllUsersForAdminAsync()
+        {
+            var genericResponse = new GenericResponse<IEnumerable<GetUserDTO>>();
+
+            var users = await _userManager.Users.ToListAsync();
+
+            var listOfUserToReturn = new List<GetUserDTO>();
+
+            if (users is null || users.Count == 0)
+            {
+                genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                genericResponse.Message = "No Users founded";
+                return genericResponse;
+            }
+
+            foreach (var user in users)
+            {
+                if (await _userManager.IsInRoleAsync(user, "Admin"))
+                    continue;
+
+                var roles = await _userManager.GetRolesAsync(user);
+
+                var userToReturnDTO = new GetUserDTO()
+                {
+                    Email = user.Email!,
+                    Id = user.Id,
+                    IsActive = user.IsActive,
+                    Role = roles.FirstOrDefault()!
+                };
+
+                listOfUserToReturn.Add(userToReturnDTO);
+            }
+
+            genericResponse.StatusCode = StatusCodes.Status200OK;
+            genericResponse.Message = "Sucess to retreive all user [Staff-Guest]";
+            genericResponse.Data = listOfUserToReturn;
+
+            return genericResponse;
+        }
+
+        public async Task<GenericResponse<bool>> ActivateUser(string userId)
+        {
+            var genericResponse = new GenericResponse<bool>();
+
+            if (userId is null)
+            {
+                genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                genericResponse.Message = $"User with id : {userId} not found";
+                return genericResponse;
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user is null)
+            {
+                genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                genericResponse.Message = $"User with id : {userId} not found";
+                return genericResponse;
+            }
+
+            user.IsActive = true;
+            var result = await _userManager.UpdateAsync(user);
+
+            if (result is null)
+            {
+                genericResponse.StatusCode = StatusCodes.Status500InternalServerError;
+                genericResponse.Message = genericResponse.Message = string.Join("|", result.Errors.Select(e => e.Description));
+                return genericResponse;
+            }
+
+            user.UpdatedAt = DateTime.Now;
+            genericResponse.StatusCode = StatusCodes.Status200OK;
+            genericResponse.Message = $"User with id : {userId} Activated Successfully";
+            genericResponse.Data = true;
+
+            return genericResponse;
+
+        }
+
+        public async Task<GenericResponse<bool>> DeActivateUser(string userId)
+        {
+            var genericResponse = new GenericResponse<bool>();
+
+            if (userId is null)
+            {
+                genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                genericResponse.Message = $"User with id : {userId} not found";
+                return genericResponse;
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user is null)
+            {
+                genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                genericResponse.Message = $"User with id : {userId} not found";
+                return genericResponse;
+            }
+
+            user.IsActive = false;
+            var result = await _userManager.UpdateAsync(user);
+
+            if (!result.Succeeded)
+            {
+                genericResponse.StatusCode = StatusCodes.Status500InternalServerError;
+                genericResponse.Message = string.Join("|", result.Errors.Select(e => e.Description));
+                return genericResponse;
+            }
+
+            user.UpdatedAt = DateTime.Now;
+            genericResponse.StatusCode = StatusCodes.Status200OK;
+            genericResponse.Message = $"User with id : {userId} DeActivated Successfully";
+            genericResponse.Data = true;
+
+            return genericResponse;
+        }
+
+        public async Task<GenericResponse<bool>> EmailExistAsync(string email)
+        {
+            var genericResponse = new GenericResponse<bool>();
+
+            var user = await _userManager.FindByEmailAsync(email);
+
+            if (user is null)
+            {
+                genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                genericResponse.Message = "This Email not exist";
+                return genericResponse;
+            }
+
+            genericResponse.StatusCode = StatusCodes.Status200OK;
+            genericResponse.Message = "Sucess to check On Email";
+            genericResponse.Data = true;
+
+            return genericResponse;
+        }
+
+        public async Task<GenericResponse<ProfileDTO>> GetProfileAsync(string userId)
+        {
+            var genericResponse = new GenericResponse<ProfileDTO>();
+
+            if (userId is null)
+            {
+                genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                genericResponse.Message = $"this Id : {userId} not found";
+                return genericResponse;
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user is null)
+            {
+                genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                genericResponse.Message = "User not found";
+                return genericResponse;
+            }
+
+            var profileUserToReturn = new ProfileDTO()
+            {
+                Email = user.Email!,
+                PhoneNumber = user.PhoneNumber!,
+                FullName = user.FullName,
+                UserName = user.UserName!
+            };
+
+            genericResponse.StatusCode = StatusCodes.Status200OK;
+            genericResponse.Message = "User Found Seccessfully";
+            genericResponse.Data = profileUserToReturn;
+
+            return genericResponse;
+        }
     }
 }
