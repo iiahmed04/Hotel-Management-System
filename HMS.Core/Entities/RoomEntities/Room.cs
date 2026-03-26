@@ -1,4 +1,6 @@
-﻿namespace HMS.Core.Entities.RoomEntities
+﻿using HMS.Core.Entities.BookingEntities;
+
+namespace HMS.Core.Entities.RoomEntities
 {
     public class Room : BaseEntity<int>
     {
@@ -8,5 +10,6 @@
         public string Amenities { get; set; } = default!;
         public ICollection<RoomImage> RoomImages { get; set; } = [];
         public RoomStatus RoomStatus { get; set; }
+        public ICollection<Booking> RoomBookings { get; set; } = [];
     }
 }

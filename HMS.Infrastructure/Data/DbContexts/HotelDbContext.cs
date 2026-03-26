@@ -1,4 +1,5 @@
-﻿using HMS.Core.Entities.IdentityEntities;
+﻿using HMS.Core.Entities.BookingEntities;
+using HMS.Core.Entities.IdentityEntities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,9 @@ namespace HMS.Infrastructure.Data.DbContexts
             modelBuilder.Entity<HotelUser>().ToTable("Users");
             modelBuilder.Entity<IdentityRole>().ToTable("Roles");
             modelBuilder.Entity<StaffUser>().ToTable("StaffUsers");
+
+            modelBuilder.Entity<Booking>().Property(x => x.TotalAmount).HasPrecision(8, 2);
+
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         }
 
