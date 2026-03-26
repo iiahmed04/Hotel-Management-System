@@ -1,4 +1,4 @@
-
+using System.Text;
 using HMS.API.Extensions;
 using HMS.Core.Contracts;
 using HMS.Core.Entities.IdentityEntities;
@@ -14,7 +14,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using AuthenticationService = HMS.Services.Services.AuthenticationService;
 using IAuthenticationService = HMS.Services.Abstraction.IAuthenticationService;
 
@@ -35,37 +34,50 @@ namespace HMS.API
 
             builder.Services.AddDbContext<HotelDbContext>(options =>
             {
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+                options.UseSqlServer(
+                    builder.Configuration.GetConnectionString("DefaultConnection")
+                );
             });
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddAutoMapper(typeof(ProfilesAssemblyReference).Assembly);
             builder.Services.AddScoped<IRoomService, RoomService>();
             builder.Services.AddTransient<IAttachementService, AttachementService>();
-            builder.Services.AddIdentityCore<HotelUser>()
+            builder
+                .Services.AddIdentityCore<HotelUser>()
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<HotelDbContext>();
             builder.Services.AddScoped<IDataIntializer, IdentityDataIntializer>();
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
-            builder.Services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(options =>
-            {
-                options.SaveToken = true;
-                options.TokenValidationParameters = new TokenValidationParameters()
+            builder
+                .Services.AddAuthentication(options =>
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidIssuer = builder.Configuration["JWTOptions:Issuer"],
-                    ValidAudience = builder.Configuration["JWTOptions:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWTOptions:SecretKey"]!))
-                };
-            });
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                .AddJwtBearer(options =>
+                {
+                    options.SaveToken = true;
+                    options.TokenValidationParameters = new TokenValidationParameters()
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidIssuer = builder.Configuration["JWTOptions:Issuer"],
+                        ValidAudience = builder.Configuration["JWTOptions:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(
+                            Encoding.UTF8.GetBytes(builder.Configuration["JWTOptions:SecretKey"]!)
+                        ),
+                    };
+                });
 
-            builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+            builder.Services.Configure<EmailSettings>(
+                builder.Configuration.GetSection("EmailSettings")
+            );
             builder.Services.AddTransient<IEmailService, EmailService>();
+            builder.Services.AddScoped<IBookingService, BookingService>();
+            builder.Services.Configure<PayMobSettings>(builder.Configuration.GetSection("PayMob"));
+            builder.Services.AddHttpClient<IPaymentService, PaymentService>();
+            builder.Services.AddScoped<IPaymentService, PaymentService>();
 
             var app = builder.Build();
 
@@ -80,7 +92,6 @@ namespace HMS.API
             }
 
             app.UseHttpsRedirection();
-
 
             app.UseAuthentication();
             app.UseAuthorization();
