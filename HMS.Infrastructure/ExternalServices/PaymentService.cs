@@ -80,6 +80,9 @@ namespace HMS.Infrastructure.ExternalServices
             booking.PayMobPaymentKey = paymentKey;
             booking.PaidDate = DateTime.Now;
 
+            booking.Status = BookingStatus.Paid;
+            booking.UpdatedAt = DateTime.Now;
+
             _unitOfWork.GetRepository<Booking, Guid>().Update(booking);
             booking.UpdatedAt = DateTime.Now;
 

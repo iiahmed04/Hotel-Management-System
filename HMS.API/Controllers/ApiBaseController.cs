@@ -19,8 +19,11 @@ namespace HMS.API.Controllers
                 StatusCodes.Status401Unauthorized => Unauthorized(response),
                 StatusCodes.Status405MethodNotAllowed => Forbid(),
                 StatusCodes.Status404NotFound => NotFound(response),
-                StatusCodes.Status500InternalServerError => StatusCode(StatusCodes.Status500InternalServerError, response),
-                _ => StatusCode(response.StatusCode, response)
+                StatusCodes.Status500InternalServerError => StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    response
+                ),
+                _ => StatusCode(response.StatusCode, response),
             };
         }
     }
