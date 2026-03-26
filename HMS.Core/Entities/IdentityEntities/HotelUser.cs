@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using HMS.Core.Entities.BookingEntities;
+using Microsoft.AspNetCore.Identity;
 
 namespace HMS.Core.Entities.IdentityEntities
 {
@@ -8,5 +9,6 @@ namespace HMS.Core.Entities.IdentityEntities
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public ICollection<Booking> GuestBookings { get; set; } = [];
     }
 }
