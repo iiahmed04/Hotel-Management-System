@@ -101,5 +101,24 @@ namespace HMS.API.Controllers
                 );
             return HandleResponse(result);
         }
+
+        //PUT: BaseUrl/api/ServiceRequests/{id}/update-status
+        [Authorize(Roles = "Staff")]
+        [HttpPut("{id}/update-status")]
+        public async Task<ActionResult<GenericResponse<bool>>> UpdateServiceRequestStatusByStaff(
+            [FromRoute] int id,
+            [FromQuery] string status
+        )
+        {
+            var staffUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var result =
+                await _hotelServicesManagementService.UpdateServiceRequestStatusByStaffAsync(
+                    id,
+                    staffUserId!,
+                    status
+                );
+
+            return HandleResponse(result);
+        }
     }
 }

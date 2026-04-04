@@ -2,6 +2,7 @@
 using AutoMapper;
 using HMS.Core.Contracts;
 using HMS.Core.Entities.BookingEntities;
+using HMS.Core.Entities.IdentityEntities;
 using HMS.Core.Entities.ServiceEntities;
 using HMS.Services.Abstraction;
 using HMS.Shared.DTOs.ServiceDTOs;
@@ -539,6 +540,82 @@ namespace HMS.Services.Services
                 _logger.LogError(ex, "An error occurred while creating a hotel service.");
                 genericResponse.StatusCode = StatusCodes.Status500InternalServerError;
                 genericResponse.Message = "Failed to update service.";
+                return genericResponse;
+            }
+        }
+
+        public async Task<GenericResponse<bool>> UpdateServiceRequestStatusByStaffAsync(
+            int serviceRequestId,
+            string staffUserId,
+            string status
+        )
+        {
+            var genericResponse = new GenericResponse<bool>();
+
+            try
+            {
+                var serviceRequest = await _unitOfWork
+                    .GetRepository<ServiceRequest, int>()
+                    .GetByIdAsync(
+                        serviceRequestId,
+                        x => x.Status == Status.Assigned,
+                        [x => x.AssignedStaff!]
+                    );
+
+                if (serviceRequest is null)
+                {
+                    genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                    genericResponse.Message = "Service Request not found to update status";
+                    return genericResponse;
+                }
+
+                if (
+                    serviceRequest.AssignedStaff!.Id != staffUserId
+                    || serviceRequest.AssignedStaff.GetType() != typeof(StaffUser)
+                )
+                {
+                    genericResponse.StatusCode = StatusCodes.Status403Forbidden;
+                    genericResponse.Message = "You are not assigned to this service request.";
+                    return genericResponse;
+                }
+
+                if (status == "InProgress" || status == "Completed")
+                {
+                    Enum.TryParse(status, out Status statusValue);
+                    serviceRequest.Status = statusValue;
+                    serviceRequest.UpdatedAt = DateTime.Now;
+                }
+                else
+                {
+                    genericResponse.StatusCode = StatusCodes.Status400BadRequest;
+                    genericResponse.Message =
+                        "You have only two status options InProgress or Completed";
+                    return genericResponse;
+                }
+
+                _unitOfWork.GetRepository<ServiceRequest, int>().Update(serviceRequest);
+
+                var result = await _unitOfWork.SaveChangesAsync() > 0;
+
+                if (!result)
+                {
+                    genericResponse.StatusCode = StatusCodes.Status500InternalServerError;
+                    genericResponse.Message = "Failed to update serviceRequest status";
+                    return genericResponse;
+                }
+
+                genericResponse.StatusCode = StatusCodes.Status200OK;
+                genericResponse.Message =
+                    $"Service Request status updated by status : {status} successfully";
+                genericResponse.Data = true;
+
+                return genericResponse;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An unexpected error while update service request status");
+                genericResponse.StatusCode = StatusCodes.Status500InternalServerError;
+                genericResponse.Message = "Failed to update serviceRequest status";
                 return genericResponse;
             }
         }

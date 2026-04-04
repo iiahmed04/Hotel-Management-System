@@ -50,5 +50,11 @@ namespace HMS.Services.Abstraction
             int serviceRequestId,
             string staffId
         );
+
+        Task<GenericResponse<bool>> UpdateServiceRequestStatusByStaffAsync(
+            int serviceRequestId,
+            string staffUserId,
+            string status
+        );
     }
 }
