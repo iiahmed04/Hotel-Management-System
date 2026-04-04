@@ -1,5 +1,6 @@
 ﻿using HMS.Core.Entities.IdentityEntities;
 using HMS.Core.Entities.RoomEntities;
+using HMS.Core.Entities.ServiceEntities;
 
 namespace HMS.Core.Entities.BookingEntities
 {
@@ -17,6 +18,6 @@ namespace HMS.Core.Entities.BookingEntities
         public int RoomId { get; set; }
         public HotelUser HotelUser { get; set; } = default!;
         public string HotelUserId { get; set; } = default!;
-
+        public ICollection<ServiceRequest> ServiceRequests { get; set; } = [];
     }
 }

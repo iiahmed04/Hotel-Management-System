@@ -4,6 +4,9 @@
     {
         HouseKeeping = 1,
         FoodAndBeverage = 2,
-        Laundary = 3,
+        Laundry = 3,
+        Concierge = 4, // handles Airport Transfer, general requests
+        Spa = 5, // handles Spa & Massage
+        Maintenance = 6, // handles technical/room issues
     }
 }
