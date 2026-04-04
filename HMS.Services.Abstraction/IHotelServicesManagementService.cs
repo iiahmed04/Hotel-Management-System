@@ -21,5 +21,7 @@ namespace HMS.Services.Abstraction
             int id,
             CreateOrUpdateHotelServiceDTO updateHotelServiceDTO
         );
+
+        Task<GenericResponse<bool>> DeleteHotelServiceByAdminAsync(int id);
     }
 }

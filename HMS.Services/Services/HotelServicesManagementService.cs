@@ -69,6 +69,49 @@ namespace HMS.Services.Services
             }
         }
 
+        public async Task<GenericResponse<bool>> DeleteHotelServiceByAdminAsync(int id)
+        {
+            var genericResponse = new GenericResponse<bool>();
+
+            try
+            {
+                var service = await _unitOfWork.GetRepository<Service, int>().GetByIdAsync(id);
+
+                if (service is null)
+                {
+                    genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                    genericResponse.Message = $"Service with Id : {id} not found to delete";
+                    return genericResponse;
+                }
+
+                service.IsAvailable = false; // Soft delete by setting IsAvailable to false
+                _unitOfWork.GetRepository<Service, int>().Update(service);
+                service.UpdatedAt = DateTime.Now;
+
+                var result = await _unitOfWork.SaveChangesAsync() > 0;
+
+                if (!result)
+                {
+                    genericResponse.StatusCode = StatusCodes.Status500InternalServerError;
+                    genericResponse.Message = "Failed to Delete service.";
+                    return genericResponse;
+                }
+
+                genericResponse.StatusCode = StatusCodes.Status200OK;
+                genericResponse.Message = "Service Deleted successfully";
+                genericResponse.Data = true;
+
+                return genericResponse;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An unexcpected error to delete Service");
+                genericResponse.StatusCode = StatusCodes.Status500InternalServerError;
+                genericResponse.Message = "Failed to Delete service.";
+                return genericResponse;
+            }
+        }
+
         public async Task<
             GenericResponse<IEnumerable<HotelServicesDTO>>
         > GetAllHotelServicesForGuestAsync()

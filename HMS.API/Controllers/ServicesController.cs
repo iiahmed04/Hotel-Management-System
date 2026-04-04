@@ -77,5 +77,16 @@ namespace HMS.API.Controllers
             );
             return HandleResponse(result);
         }
+
+        // PUT : BaseUrl/api/Services/{id}
+        [Authorize(Roles = "Admin")]
+        [HttpPut("soft-delete/{id}")]
+        public async Task<ActionResult<GenericResponse<bool>>> SoftDeleteHotelServiceByAdmin(
+            [FromRoute] int id
+        )
+        {
+            var result = await _hotelServicesManagementService.DeleteHotelServiceByAdminAsync(id);
+            return HandleResponse(result);
+        }
     }
 }
