@@ -78,6 +78,10 @@ namespace HMS.API
             builder.Services.Configure<PayMobSettings>(builder.Configuration.GetSection("PayMob"));
             builder.Services.AddHttpClient<IPaymentService, PaymentService>();
             builder.Services.AddScoped<IPaymentService, PaymentService>();
+            builder.Services.AddScoped<
+                IHotelServicesManagementService,
+                HotelServicesManagementService
+            >();
 
             var app = builder.Build();
 
