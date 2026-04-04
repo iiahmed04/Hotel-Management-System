@@ -1,4 +1,5 @@
 ﻿using HMS.Shared.DTOs.ServiceDTOs;
+using HMS.Shared.QueryParameters;
 using HMS.Shared.Responses;
 
 namespace HMS.Services.Abstraction
@@ -35,6 +36,19 @@ namespace HMS.Services.Abstraction
         Task<GenericResponse<bool>> DeleteServiceRequestByGuestAsync(
             int serviceRequestId,
             string guestId
+        );
+
+        Task<
+            GenericResponse<IEnumerable<ServiceRequestForAdminDTO>>
+        > GetAllServiceRequestsForAdminAsync(ServiceRequestQueryParam? queryParam);
+
+        Task<GenericResponse<ServiceRequestForAdminDTO>> GetServiceRequestByIdForAdminAsync(
+            int serviceRequestId
+        );
+
+        Task<GenericResponse<bool>> AssignStaffToServiceRequestByAdminAsync(
+            int serviceRequestId,
+            string staffId
         );
     }
 }

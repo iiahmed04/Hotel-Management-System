@@ -5,6 +5,7 @@ using HMS.Core.Entities.BookingEntities;
 using HMS.Core.Entities.ServiceEntities;
 using HMS.Services.Abstraction;
 using HMS.Shared.DTOs.ServiceDTOs;
+using HMS.Shared.QueryParameters;
 using HMS.Shared.Responses;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -26,6 +27,58 @@ namespace HMS.Services.Services
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
+        }
+
+        public async Task<GenericResponse<bool>> AssignStaffToServiceRequestByAdminAsync(
+            int serviceRequestId,
+            string staffId
+        )
+        {
+            var genericResponse = new GenericResponse<bool>();
+
+            try
+            {
+                var serviceRequest = await _unitOfWork
+                    .GetRepository<ServiceRequest, int>()
+                    .GetByIdAsync(serviceRequestId, x => x.Status == Status.Pending, null);
+
+                if (serviceRequest is null)
+                {
+                    genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                    genericResponse.Message =
+                        "Service Request not found or cannot assign staff to a non-pending request.";
+                    return genericResponse;
+                }
+
+                serviceRequest.AssignedStaffId = staffId;
+                serviceRequest.Status = Status.Assigned;
+                serviceRequest.UpdatedAt = DateTime.Now;
+
+                _unitOfWork.GetRepository<ServiceRequest, int>().Update(serviceRequest);
+
+                var result = await _unitOfWork.SaveChangesAsync() > 0;
+
+                if (!result)
+                {
+                    genericResponse.StatusCode = StatusCodes.Status500InternalServerError;
+                    genericResponse.Message = "Failed to assign staff to service";
+                    return genericResponse;
+                }
+
+                genericResponse.StatusCode = StatusCodes.Status200OK;
+                genericResponse.Message =
+                    $"Staff with id ; {staffId} assign with service : {serviceRequest.ServiceId} successfully";
+                genericResponse.Data = true;
+
+                return genericResponse;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An unexpected error while assign staff");
+                genericResponse.StatusCode = StatusCodes.Status500InternalServerError;
+                genericResponse.Message = "Failed to assign staff to service";
+                return genericResponse;
+            }
         }
 
         public async Task<GenericResponse<bool>> CreateHotelServiceByAdminAsync(
@@ -317,6 +370,38 @@ namespace HMS.Services.Services
         }
 
         public async Task<
+            GenericResponse<IEnumerable<ServiceRequestForAdminDTO>>
+        > GetAllServiceRequestsForAdminAsync(ServiceRequestQueryParam? queryParam)
+        {
+            var genericResponse = new GenericResponse<IEnumerable<ServiceRequestForAdminDTO>>();
+
+            Enum.TryParse(queryParam!.Status, true, out Status statusValue);
+            Expression<Func<ServiceRequest, bool>> filter = x =>
+                (queryParam!.Status == null || x.Status == statusValue)
+                && (queryParam.ServiceId == null || x.ServiceId == queryParam.ServiceId)
+                && (queryParam.StaffId == null || x.AssignedStaffId == queryParam.StaffId);
+
+            var serviceRequests = await _unitOfWork
+                .GetRepository<ServiceRequest, int>()
+                .GetAllAsync(filter, null, null, [x => x.Booking.HotelUser, x => x.Service]);
+
+            if (serviceRequests is null)
+            {
+                genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                genericResponse.Message = "Service Requests not found";
+                return genericResponse;
+            }
+
+            var mappedData = _mapper.Map<IEnumerable<ServiceRequestForAdminDTO>>(serviceRequests);
+
+            genericResponse.StatusCode = StatusCodes.Status200OK;
+            genericResponse.Message = "Retrives Service Request Successfully";
+            genericResponse.Data = mappedData;
+
+            return genericResponse;
+        }
+
+        public async Task<
             GenericResponse<IEnumerable<ServiceRequestDTO>>
         > GetAllServiceRequestsForCurrentGuestAsync(string guestId)
         {
@@ -380,6 +465,33 @@ namespace HMS.Services.Services
             genericResponse.StatusCode = StatusCodes.Status200OK;
             genericResponse.Message = $"Service with Id : {serviceId} retrieved successfully.";
             genericResponse.Data = mappedService;
+
+            return genericResponse;
+        }
+
+        public async Task<
+            GenericResponse<ServiceRequestForAdminDTO>
+        > GetServiceRequestByIdForAdminAsync(int serviceRequestId)
+        {
+            var genericResponse = new GenericResponse<ServiceRequestForAdminDTO>();
+
+            var serviceRequest = await _unitOfWork
+                .GetRepository<ServiceRequest, int>()
+                .GetByIdAsync(serviceRequestId, null, [x => x.Booking.HotelUser, x => x.Service]);
+
+            if (serviceRequest is null)
+            {
+                genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                genericResponse.Message =
+                    $"Service Request with id : {serviceRequestId} is not found";
+                return genericResponse;
+            }
+
+            var mappedData = _mapper.Map<ServiceRequestForAdminDTO>(serviceRequest);
+
+            genericResponse.StatusCode = StatusCodes.Status200OK;
+            genericResponse.Message = "Retrive service request successfully";
+            genericResponse.Data = mappedData;
 
             return genericResponse;
         }

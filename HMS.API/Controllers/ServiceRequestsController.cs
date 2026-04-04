@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using HMS.Services.Abstraction;
 using HMS.Shared.DTOs.ServiceDTOs;
+using HMS.Shared.QueryParameters;
 using HMS.Shared.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -56,6 +57,48 @@ namespace HMS.API.Controllers
                 id,
                 guestId!
             );
+            return HandleResponse(result);
+        }
+
+        // GET: BaseUrl/api/ServiceRequests
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public ActionResult<
+            GenericResponse<IEnumerable<ServiceRequestForAdminDTO>>
+        > GetAllServiceRequestsForAdmin([FromQuery] ServiceRequestQueryParam? queryParam)
+        {
+            var result = _hotelServicesManagementService.GetAllServiceRequestsForAdminAsync(
+                queryParam
+            );
+            return HandleResponse(result.Result);
+        }
+
+        //GET: BaseUrl/api/ServiceRequests/{id}
+        [Authorize(Roles = "Admin")]
+        [HttpGet("{id}")]
+        public async Task<
+            ActionResult<GenericResponse<ServiceRequestForAdminDTO>>
+        > GetServiceRequestByIdForAdmin(int id)
+        {
+            var result = await _hotelServicesManagementService.GetServiceRequestByIdForAdminAsync(
+                id
+            );
+            return HandleResponse(result);
+        }
+
+        // PUT: BaseUrl/api/ServiceRequests/{id}/assign-staff
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{id}/assign-staff")]
+        public async Task<ActionResult<GenericResponse<bool>>> AssignStaffToServiceRequestByAdmin(
+            [FromRoute] int id,
+            [FromBody] string staffId
+        )
+        {
+            var result =
+                await _hotelServicesManagementService.AssignStaffToServiceRequestByAdminAsync(
+                    id,
+                    staffId
+                );
             return HandleResponse(result);
         }
     }

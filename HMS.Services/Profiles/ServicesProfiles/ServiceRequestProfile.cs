@@ -17,6 +17,21 @@ namespace HMS.Services.Profiles.ServicesProfiles
                     dest => dest.RequestedAt,
                     opt => opt.MapFrom(src => src.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"))
                 );
+
+            CreateMap<ServiceRequest, ServiceRequestForAdminDTO>()
+                .ForMember(
+                    dest => dest.GuestName,
+                    opt => opt.MapFrom(src => src.Booking.HotelUser.FullName)
+                )
+                .ForMember(dest => dest.ServiceName, opt => opt.MapFrom(src => src.Service.Name))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+                .ForMember(
+                    dest => dest.AssignedStaff,
+                    opt =>
+                        opt.MapFrom(src =>
+                            src.AssignedStaff != null ? src.AssignedStaff.FullName : null
+                        )
+                );
         }
     }
 }
