@@ -1,5 +1,7 @@
-﻿using AutoMapper;
+﻿using System.Linq.Expressions;
+using AutoMapper;
 using HMS.Core.Contracts;
+using HMS.Core.Entities.BookingEntities;
 using HMS.Core.Entities.ServiceEntities;
 using HMS.Services.Abstraction;
 using HMS.Shared.DTOs.ServiceDTOs;
@@ -69,6 +71,76 @@ namespace HMS.Services.Services
             }
         }
 
+        public async Task<GenericResponse<bool>> CreateServiceRequestByGuestAsync(
+            CreateServiceRequestByGuestDTO createServiceRequestByGuestDTO
+        )
+        {
+            var genericResponse = new GenericResponse<bool>();
+
+            try
+            {
+                if (createServiceRequestByGuestDTO is null)
+                {
+                    genericResponse.StatusCode = StatusCodes.Status400BadRequest;
+                    genericResponse.Message = "Invalid fields to create service request.";
+                    return genericResponse;
+                }
+
+                var booking = await _unitOfWork
+                    .GetRepository<Booking, Guid>()
+                    .GetByIdAsync(createServiceRequestByGuestDTO.BookingId);
+
+                if (booking is null)
+                {
+                    genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                    genericResponse.Message =
+                        "Booking you want to request a service for is not found";
+                    return genericResponse;
+                }
+
+                var service = await _unitOfWork
+                    .GetRepository<Service, int>()
+                    .GetByIdAsync(createServiceRequestByGuestDTO.ServiceId);
+
+                if (service is null || service!.IsAvailable == false)
+                {
+                    genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                    genericResponse.Message = "Service you want to request is not found";
+                    return genericResponse;
+                }
+
+                var mappedServiceRequest = _mapper.Map<ServiceRequest>(
+                    createServiceRequestByGuestDTO
+                );
+
+                await _unitOfWork
+                    .GetRepository<ServiceRequest, int>()
+                    .AddAsync(mappedServiceRequest);
+
+                var result = await _unitOfWork.SaveChangesAsync() > 0;
+
+                if (!result)
+                {
+                    genericResponse.StatusCode = StatusCodes.Status500InternalServerError;
+                    genericResponse.Message = "Failed to Request a service";
+                    return genericResponse;
+                }
+
+                genericResponse.StatusCode = StatusCodes.Status200OK;
+                genericResponse.Message = "Service Request created successfully";
+                genericResponse.Data = true;
+
+                return genericResponse;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An unexcpected error to request a service");
+                genericResponse.StatusCode = StatusCodes.Status500InternalServerError;
+                genericResponse.Message = "Failed to Request a service";
+                return genericResponse;
+            }
+        }
+
         public async Task<GenericResponse<bool>> DeleteHotelServiceByAdminAsync(int id)
         {
             var genericResponse = new GenericResponse<bool>();
@@ -108,6 +180,57 @@ namespace HMS.Services.Services
                 _logger.LogError(ex, "An unexcpected error to delete Service");
                 genericResponse.StatusCode = StatusCodes.Status500InternalServerError;
                 genericResponse.Message = "Failed to Delete service.";
+                return genericResponse;
+            }
+        }
+
+        public async Task<GenericResponse<bool>> DeleteServiceRequestByGuestAsync(
+            int serviceRequestId,
+            string guestId
+        )
+        {
+            var genericResponse = new GenericResponse<bool>();
+
+            try
+            {
+                Expression<Func<ServiceRequest, bool>> filter = x => x.Status == Status.Pending;
+
+                var serviceRequest = await _unitOfWork
+                    .GetRepository<ServiceRequest, int>()
+                    .GetByIdAsync(serviceRequestId, filter, null);
+
+                if (serviceRequest == null)
+                {
+                    genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                    genericResponse.Message = "Service Request to delete is not found";
+                    return genericResponse;
+                }
+
+                serviceRequest.Status = Status.Cancelled; // Soft delete by setting Status to Cancelled
+
+                _unitOfWork.GetRepository<ServiceRequest, int>().Update(serviceRequest);
+                serviceRequest.UpdatedAt = DateTime.Now;
+
+                var result = await _unitOfWork.SaveChangesAsync() > 0;
+
+                if (!result)
+                {
+                    genericResponse.StatusCode = StatusCodes.Status500InternalServerError;
+                    genericResponse.Message = "Failed to cancel service request";
+                    return genericResponse;
+                }
+
+                genericResponse.StatusCode = StatusCodes.Status200OK;
+                genericResponse.Message = "Service request cancelled successfully";
+                genericResponse.Data = true;
+
+                return genericResponse;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An unexcpected error to cancel service request");
+                genericResponse.StatusCode = StatusCodes.Status500InternalServerError;
+                genericResponse.Message = "Failed to cancel service request";
                 return genericResponse;
             }
         }
@@ -189,6 +312,41 @@ namespace HMS.Services.Services
             genericResponse.StatusCode = StatusCodes.Status200OK;
             genericResponse.Message = "Services retrieved successfully.";
             genericResponse.Data = mappedServices;
+
+            return genericResponse;
+        }
+
+        public async Task<
+            GenericResponse<IEnumerable<ServiceRequestDTO>>
+        > GetAllServiceRequestsForCurrentGuestAsync(string guestId)
+        {
+            var genericResponse = new GenericResponse<IEnumerable<ServiceRequestDTO>>();
+
+            var serviceRequests = await _unitOfWork
+                .GetRepository<ServiceRequest, int>()
+                .GetAllAsync(null, null, null, [x => x.Service]);
+
+            if (serviceRequests is null)
+            {
+                genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                genericResponse.Message = "No ServiceRequest found";
+                return genericResponse;
+            }
+
+            var mappedServiceRequests = _mapper.Map<IEnumerable<ServiceRequestDTO>>(
+                serviceRequests
+            );
+
+            if (mappedServiceRequests is null)
+            {
+                genericResponse.StatusCode = StatusCodes.Status404NotFound;
+                genericResponse.Message = "No ServiceRequest found";
+                return genericResponse;
+            }
+
+            genericResponse.StatusCode = StatusCodes.Status200OK;
+            genericResponse.Message = "Success to return service requests";
+            genericResponse.Data = mappedServiceRequests;
 
             return genericResponse;
         }

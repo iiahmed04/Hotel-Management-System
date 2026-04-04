@@ -23,5 +23,18 @@ namespace HMS.Services.Abstraction
         );
 
         Task<GenericResponse<bool>> DeleteHotelServiceByAdminAsync(int id);
+
+        Task<GenericResponse<bool>> CreateServiceRequestByGuestAsync(
+            CreateServiceRequestByGuestDTO createServiceRequestByGuestDTO
+        );
+
+        Task<
+            GenericResponse<IEnumerable<ServiceRequestDTO>>
+        > GetAllServiceRequestsForCurrentGuestAsync(string guestId);
+
+        Task<GenericResponse<bool>> DeleteServiceRequestByGuestAsync(
+            int serviceRequestId,
+            string guestId
+        );
     }
 }
