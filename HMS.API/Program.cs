@@ -82,6 +82,9 @@ namespace HMS.API
                 IHotelServicesManagementService,
                 HotelServicesManagementService
             >();
+            builder.Services.AddHttpClient<IOpenAiModerationService, OpenAiModerationService>();
+            builder.Services.AddScoped<IOpenAiModerationService, OpenAiModerationService>();
+            builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 
             var app = builder.Build();
 
